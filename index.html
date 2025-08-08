@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Consent Mode Sniffer (GA /collect)</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.4;padding:28px;max-width:780px;margin:auto}
+  h1{font-size:1.8rem;margin:0 0 10px}
+  .card{border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin:16px 0;background:#fff}
+  .btn{display:inline-block;background:#111;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:600}
+  code{background:#f6f8fa;padding:2px 6px;border-radius:6px}
+  .muted{color:#666}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  textarea{width:100%;height:130px}
+</style>
+</head>
+<body>
+  <h1>Consent Mode Sniffer</h1>
+  <p class="muted">Drag this to your bookmarks bar, then click it on any page to decode GA <code>/collect</code> consent (<code>gcd</code>/<code>gcs</code>).</p>
+
+  <div class="card">
+    <a id="bm" class="btn" href="">Consent Sniffer</a>
+    <span class="muted">← drag to bookmarks</span>
+  </div>
+
+  <div class="card">
+    <p>Or copy the raw bookmarklet:</p>
+    <textarea id="ta" readonly></textarea>
+    <div class="row">
+      <button id="copy" class="btn" type="button">Copy</button>
+      <span class="muted">Then create a new bookmark and paste into the URL field.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>Notes</strong>
+    <ul>
+      <li>Works by hooking <code>fetch</code> and XHR, watching GA <code>/collect</code> calls.</li>
+      <li>Shows an overlay + logs decoded consent. Stop with <code>window.__stopConsentSniffer()</code> or reload.</li>
+      <li>Some sites with strict CSP may block bookmarklets.</li>
+    </ul>
+  </div>
+
+<script>
+// --- minified bookmarklet payload (same as I gave you) ---
+const PAYLOAD=`javascript:!function(){if(window.__stopConsentSniffer)window.__stopConsentSniffer();const e=e=>{const t=[...String(e).matchAll(/[a-zA-Z]/g)].map(e=>e[0]),o={l:["not set","gray"],p:["denied (default)","red"],q:["denied (default + update)","red"],t:["granted (default)","green"],r:["denied → granted","green"],m:["denied (update)","red"],n:["granted (update)","green"],u:["granted → denied","red"],v:["granted (default + update)","green"],L:["not set *(manuell)*","gray"],P:["granted (default + update) *(manuell)*","green"],Q:["denied + update *(manuell)*","red"],T:["granted *(manuell)*","green"],R:["denied → granted *(manuell)*","green"],M:["denied (update) *(manuell)*","red"],N:["granted (update) *(manuell)*","green"],U:["granted → denied *(manuell)*","red"],V:["granted (default + update) *(manuell)*","green"]},n=["ad_storage","analytics_storage","ad_user_data","ad_personalization"];return n.map((e,n)=>{const r=t[n],[a,d]=o[r]||["❓ unbekannt","black"];return{key:e,text:a,color:d}})},t=t=>{const o=String(t).toUpperCase().replace(/^G1/,"");if(!/^[01]{2}$/.test(o))return null;const[n,r]=o.split("");return[{key:"ad_storage",text:"1"===n?"granted":"denied",color:"1"===n?"green":"red"},{key:"analytics_storage",text:"1"===r?"granted":"denied",color:"1"===r?"green":"red"}]},o=(e,t,o,n)=>{document.getElementById("__consent_overlay__")?.remove();const r=document.createElement("div");r.id="__consent_overlay__",Object.assign(r.style,{position:"fixed",top:"24px",right:"24px",background:"#fff",padding:"14px 16px",border:"1px solid #ddd",borderRadius:"12px",boxShadow:"0 6px 24px rgba(0,0,0,.15)",fontFamily:"system-ui,-apple-system,Segoe UI,Roboto,sans-serif",fontSize:"14px",zIndex:999999,minWidth:"320px",maxWidth:"520px"});const a=document.createElement("div");if(a.style.fontWeight="600",a.style.marginBottom="6px",a.textContent=e,r.appendChild(a),t){const e=document.createElement("div");e.style.fontSize="12px",e.style.color="#666",e.style.marginBottom="8px";try{const t=new URL(t,location.href);e.textContent=t.hostname+" …"+t.pathname.slice(-20)}catch{e.textContent=t}r.appendChild(e)}if(o)o.forEach(e=>{const t=document.createElement("div");t.style.margin="3px 0",t.innerHTML=\`<strong>\${e.key}</strong>: <span style="color:\${e.color}">\${e.text}</span>\`,r.appendChild(t)});else{const e=document.createElement("div");e.textContent="❌ Unbekanntes/ungültiges Format",r.appendChild(e)}const d=document.createElement("button");d.textContent="✖",Object.assign(d.style,{position:"absolute",top:"6px",right:"10px",border:"none",background:"transparent",cursor:"pointer",fontSize:"16px",lineHeight:"1",color:"#555"}),d.setAttribute("aria-label","Schließen"),d.onclick=()=>r.remove(),r.appendChild(d),document.body.appendChild(r)},n=(e,n,r,a)=>{console.group(\`[Consent] \${e}  \${n}\`),a&&console.log("raw:",a),r?r.forEach(e=>console.log(\`\${e.key}: %c\${e.text}\`,\`color:\${e.color}\`)):console.warn("Unknown/invalid format"),console.groupEnd()},r=o=>{try{const r=new URL(o,location.href),a=(r.pathname||"").toLowerCase(),d=r.hostname||"",s=a.includes("/collect")&&(/google-analytics\\.com$/i.test(d)||/(?:^|\\.) (analytics|region\\d+)\\.google\\.com$/i.test(d.replace(/\\s/g,""))||/googletagmanager\\.com$/i.test(d));if(!s)return null;const i=r.searchParams.get("gcd")||r.searchParams.get("_gcd");if(i&&/^1[13]/.test(i)){const t=e(i);return{kind:"GA4 gcd (v2)",rows:t,raw:i}}const l=r.searchParams.get("gcs")||r.searchParams.get("_gcs")||r.searchParams.get("gcsu");if(l&&(/^G1[01]{2}$/i.test(l)||/^[01]{2}$/.test(l))){const e=t(l);return{kind:"Legacy gcs (v1)",rows:e,raw:l}}return{kind:"collect (no gcd/gcs)",rows:null,raw:null}}catch{return null}},a=window.fetch,d=XMLHttpRequest.prototype.open,s=XMLHttpRequest.prototype.send,i=e=>{const t=r(e);t&&(n(t.kind,e,t.rows,t.raw),t.rows&&o(t.kind,t.rows,e))};window.fetch=function(){try{const e="string"==typeof arguments[0]?arguments[0]:arguments[0]?.url;e&&i(e)}catch{}return a.apply(this,arguments)},XMLHttpRequest.prototype.open=function(e,t){try{this.__cm_url=t}catch{}return d.apply(this,arguments)},XMLHttpRequest.prototype.send=function(e){try{this.__cm_url&&i(this.__cm_url)}catch{}return s.apply(this,arguments)};try{performance.getEntriesByType("resource").slice(-50).forEach(e=>e.name&&i(e.name))}catch{}window.__stopConsentSniffer=()=>{window.fetch=a,XMLHttpRequest.prototype.open=d,XMLHttpRequest.prototype.send=s,document.getElementById("__consent_overlay__")?.remove(),delete window.__stopConsentSniffer,console.info("[Consent] Sniffer stopped and hooks restored.")},console.info("[Consent] Sniffer active. Waiting for GA /collect…  (call window.__stopConsentSniffer() to stop)")}();`;
+
+document.getElementById('bm').setAttribute('href', PAYLOAD);
+document.getElementById('ta').value = PAYLOAD;
+document.getElementById('copy').onclick = async () => {
+  await navigator.clipboard.writeText(PAYLOAD);
+  document.getElementById('copy').textContent = 'Copied!';
+  setTimeout(()=>document.getElementById('copy').textContent='Copy', 1200);
+};
+</script>
+</body>
+</html>
